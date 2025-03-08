@@ -382,7 +382,24 @@ app.get('/getChatLogsByRoomcomplain/:roomNumber', async (req, res) => {
     });
   }
 });
-
+app.get('/getComplain', async (req, res) => {
+  try {
+    const groupedChats = await Chat.aggregate([
+      {
+        $group: {
+          _id: "$roomNumber",
+          messages: { $push: "$$ROOT" },
+        },
+      },
+    ]);
+    res.status(200).json(groupedChats);
+  } catch (err) {
+    console.error('Error fetching chat logs:', err.message);
+    res
+      .status(500)
+      .json({ success: false, message: 'Error fetching chat logs.' });
+  }
+});
 // RoomService Schema & Model
 const roomServiceSchema = new mongoose.Schema({
   roomNumber: { type: String, required: true },
@@ -444,8 +461,6 @@ app.get('/getRoomservices', async (req, res) => {
     });
   }
 });
-
-
 // Ana sayfa endpoint'i (Opsiyonel)
 app.get('/', (req, res) => {
   res.send('Welcome to Keepsty Backend API!');
