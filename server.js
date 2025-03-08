@@ -384,7 +384,7 @@ app.get('/getChatLogsByRoomcomplain/:roomNumber', async (req, res) => {
 });
 app.get('/getComplain', async (req, res) => {
   try {
-    const groupedChats = await Chat.aggregate([
+    const groupedComplain = await Complain.aggregate([ // Chat yerine Complain
       {
         $group: {
           _id: "$roomNumber",
@@ -392,12 +392,10 @@ app.get('/getComplain', async (req, res) => {
         },
       },
     ]);
-    res.status(200).json(groupedChats);
+    res.status(200).json(groupedComplain);
   } catch (err) {
-    console.error('Error fetching chat logs:', err.message);
-    res
-      .status(500)
-      .json({ success: false, message: 'Error fetching chat logs.' });
+    console.error('Error fetching complain logs:', err.message);
+    res.status(500).json({ success: false, message: 'Error fetching complains.' });
   }
 });
 // RoomService Schema & Model
