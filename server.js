@@ -200,7 +200,7 @@ const Bellboy = mongoose.model('Bellboy', bellboySchema, 'Bellboy');
 app.post('/saveBellboyRequest', async (req, res) => {
   try {
     let { roomNumber, username, clickType, details, selectedTime } = req.body;
-    if (!roomNumber || !username || !clickType) {
+    if (!roomNumber || !username || !clickType || !selectedTime) {
       return res.status(400).json({ success: false, message: 'Gerekli alanlar eksik.' });
     }
     if (selectedTime) {
@@ -252,28 +252,36 @@ const laundrySchema = new mongoose.Schema({
   username: { type: String, required: true, default: 'Unknown' },
   items: [{
     name: { type: String, required: true },
-    description: String,
     price: { type: String, required: true },
     quantity: { type: Number, required: true },
   }],
   totalPrice: { type: Number, required: true },
+  serviceTime: { type: Number, required: true },         // Örneğin, 30, 60, 120, 240
+  serviceTimeLabel: { type: String, required: true },      // Örneğin, "In 30 minutes"
   createdAt: { type: Date, default: Date.now }
 });
-
 
 // Üçüncü parametre olarak 'Laundry' vererek, MongoDB'de koleksiyon ismini belirliyoruz.
 const Laundry = mongoose.model('Laundry', laundrySchema, 'Laundry');
 
 // Laundry verilerini kaydeden endpoint
+// Laundry verilerini kaydeden endpoint
 app.post('/saveLaundry', async (req, res) => {
   try {
-    const { roomNumber, items, totalPrice } = req.body;
-    if (!roomNumber || !items || typeof totalPrice === 'undefined') {
-      return res.status(400).json({ success: false, message: 'Gerekli alanlar eksik: roomNumber, items veya totalPrice.' });
+    const { roomNumber, items, totalPrice, serviceTime, serviceTimeLabel } = req.body;
+    if (!roomNumber || !items || typeof totalPrice === 'undefined' || typeof serviceTime === 'undefined' || !serviceTimeLabel) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Gerekli alanlar eksik: roomNumber, items, totalPrice, serviceTime veya serviceTimeLabel.' 
+      });
     }
-    const newLaundry = new Laundry({ roomNumber, items, totalPrice });
+    const newLaundry = new Laundry({ roomNumber, items, totalPrice, serviceTime, serviceTimeLabel });
     await newLaundry.save();
-    res.status(200).json({ success: true, message: 'Laundry verileri başarıyla kaydedildi!', laundry: newLaundry });
+    res.status(200).json({ 
+      success: true, 
+      message: 'Laundry verileri başarıyla kaydedildi!', 
+      laundry: newLaundry 
+    });
   } catch (err) {
     console.error('Laundry verileri kaydedilirken hata oluştu:', err.message);
     res.status(500).json({ success: false, message: 'Laundry verileri kaydedilirken hata oluştu.' });
@@ -302,68 +310,140 @@ app.get('/getLaundry/:roomNumber', async (req, res) => {
    Complain Model & Endpoints
    ========================== */
 
+
 const complainSchema = new mongoose.Schema({
-  roomNumber: { type: String, required: true }, // Yeni alan eklendi
-  username: { type: String, required: true },
-  language: { type: String, required: true },
+  roomNumber: { type: String, required: true },
+  username: { type: String, required: true, default: 'Unknown' },
+  language: { type: String, required: true, default: 'unknown' },
   message: { type: String, required: true },
-  sender: { type: String, enum: ['user', 'bot'], required: true },
-  timestamp: { type: Date, default: Date.now },
+  sender: { type: String, required: true }, // 'user' veya 'bot'
+  createdAt: { type: Date, default: Date.now }
 });
+
+// Üçüncü parametre ile koleksiyon ismi 'Complain' olarak belirleniyor.
 const Complain = mongoose.model('Complain', complainSchema, 'Complain');
 
-// Tüm oda numaralarına göre gruplandırılmış sohbet kayıtlarını döndüren endpoint
-app.get('/getChatLogsee', async (req, res) => {
+// Mesaj kaydetme endpoint'i
+app.post('/savecomplain', async (req, res) => {
   try {
-    const groupedComplains = await Complain.aggregate([
-      {
-        $group: {
-          _id: "$roomNumber",
-          messages: { $push: "$$ROOT" },
-        },
-      },
-    ]);
-    res.status(200).json(groupedComplains);
-  } catch (err) {
-    console.error('Error fetching chat logs:', err.message);
-    res.status(500).json({ success: false, message: 'Error fetching chat logs.' });
-  }
-});
-
-// Belirli bir oda numarasına ait sohbet kayıtlarını döndüren endpoint
-app.get('/getChatLogsByRoomee/:roomNumber', async (req, res) => {
-  try {
-    const roomNumber = req.params.roomNumber;
-    if (!roomNumber) {
-      return res.status(400).json({ success: false, message: 'Room number is required.' });
+    const { roomNumber, username, language, message, sender } = req.body;
+    if (!roomNumber || !message || !sender) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Gerekli alanlar eksik: roomNumber, message veya sender.' 
+      });
     }
-    const complains = await Complain.find({ roomNumber }).sort({ timestamp: 1 });
-    if (complains.length === 0) {
-      return res.status(404).json({ success: false, message: 'No chats found for this room.' });
-    }
-    res.status(200).json(complains);
-  } catch (err) {
-    console.error(`Error fetching chats for room ${req.params.roomNumber}:`, err.message);
-    res.status(500).json({ success: false, message: 'Error fetching chats for the room.' });
-  }
-});
-
-// Yeni bir sohbet mesajı kaydeden endpoint
-app.post('/saveResponsee', async (req, res) => {
-  try {
-    const { roomNumber, username, message, sender } = req.body;
-    if (!roomNumber || !username || !message || !sender) {
-      return res.status(400).json({ success: false, message: 'Missing required fields.' });
-    }
-    const newComplain = new Complain({ roomNumber, username, message, sender });
+    
+    const newComplain = new Complain({ roomNumber, username, language, message, sender });
     await newComplain.save();
-    res.status(200).json({ success: true, message: 'Message saved!' });
+    
+    res.status(200).json({ 
+      success: true, 
+      message: 'Message saved successfully!',
+      complain: newComplain 
+    });
   } catch (err) {
-    console.error('Error saving message:', err.message);
-    res.status(500).json({ success: false, message: 'Error saving message.' });
+    console.error('Error saving complain:', err.message);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error saving complain.' 
+    });
   }
 });
 
+// Belirli oda numarasına göre mesajları getiren endpoint
+app.get('/getChatLogsByRoomcomplain/:roomNumber', async (req, res) => {
+  try {
+    const { roomNumber } = req.params;
+    if (!roomNumber) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Room number is required.' 
+      });
+    }
+    
+    const messages = await Complain.find({ roomNumber }).sort({ createdAt: 1 });
+    if (messages.length === 0) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'No messages found for this room.' 
+      });
+    }
+    
+    res.status(200).json({ 
+      success: true, 
+      messages 
+    });
+  } catch (err) {
+    console.error('Error fetching complain messages:', err.message);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error fetching messages.' 
+    });
+  }
+});
+
+// RoomService Schema & Model
+const roomServiceSchema = new mongoose.Schema({
+  roomNumber: { type: String, required: true },
+  username: { type: String, required: true, default: "Unknown" },
+  items: [{
+    name: { type: String, required: true },
+    price: { type: String, required: true },
+    quantity: { type: Number, required: true }
+  }],
+  totalPrice: { type: Number, required: true },
+  serviceTime: { type: Number, required: true },        // Örneğin, 10, 60, 120, 180
+  serviceTimeLabel: { type: String, required: true },     // Örneğin, "10 min", "1 hour"
+  createdAt: { type: Date, default: Date.now }
+});
+
+// Üçüncü parametre ile koleksiyon ismi "RoomService" olarak belirleniyor.
+const RoomService = mongoose.model('RoomService', roomServiceSchema, 'RoomService');
+
+// RoomService verilerini kaydeden endpoint
+app.post('/saveRoomservice', async (req, res) => {
+  try {
+    const { roomNumber, username, items, totalPrice, serviceTime, serviceTimeLabel } = req.body;
+    
+    // Gerekli alanların kontrolü
+    if (!roomNumber || !items || typeof totalPrice === 'undefined' || typeof serviceTime === 'undefined' || !serviceTimeLabel) {
+      return res.status(400).json({
+        success: false,
+        message: "Gerekli alanlar eksik: roomNumber, items, totalPrice, serviceTime veya serviceTimeLabel."
+      });
+    }
+    
+    const newRoomService = new RoomService({ roomNumber, username, items, totalPrice, serviceTime, serviceTimeLabel });
+    await newRoomService.save();
+    
+    res.status(200).json({
+      success: true,
+      message: "Room service başarıyla kaydedildi!",
+      roomService: newRoomService
+    });
+  } catch (error) {
+    console.error("Room service kaydedilirken hata oluştu:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Room service kaydedilirken hata oluştu."
+    });
+  }
+});
+
+// Opsiyonel: Tüm RoomService kayıtlarını getiren endpoint
+app.get('/getRoomservices', async (req, res) => {
+  try {
+    const roomServices = await RoomService.find().sort({ createdAt: -1 });
+    res.status(200).json({ success: true, roomServices });
+  } catch (error) {
+    console.error("Room service kayıtları alınırken hata:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Room service kayıtları alınırken hata oluştu."
+    });
+  }
+});
 
 // Ana sayfa endpoint'i (Opsiyonel)
 app.get('/', (req, res) => {
@@ -371,7 +451,7 @@ app.get('/', (req, res) => {
 });
 
 // Sunucuyu başlat
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server is running on port ${PORT}`);
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
