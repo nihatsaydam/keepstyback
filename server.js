@@ -746,13 +746,18 @@ app.post('/saveRoomservice', async (req, res) => {
       from: '"Room Service Uygulaması" <nihatsaydam13131@gmail.com>',
       to: 'nihat.saydam@icloud.com', // Bildirimi almak istediğiniz e-posta adresi
       subject: 'Yeni Room Service Siparişi Geldi',
-      text: `Yeni bir room service siparişi geldi.
+      text: `Merhaba,
+
+      Yeni bir Room Service siparişi alındı. Sipariş detayları aşağıdaki gibidir:
+      
 Oda: ${roomNumber}
 Siparişi veren: ${username || 'Bilinmiyor'}
 Ürünler: ${itemsString}
 Toplam Fiyat: ${totalPrice}₺
 Hizmet Süresi: ${serviceTimeLabel} (${serviceTime})
-Detaylar için yönetim panelini kontrol edebilirsiniz.`
+Detaylar için yönetim panelini kontrol edebilirsiniz.
+Teşekkürler,
+Keepsty Ekibi`
     };
 
     transporter.sendMail(mailOptions, (error, info) => {
