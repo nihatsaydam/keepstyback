@@ -31,6 +31,86 @@ const transporter = nodemailer.createTransport({
   }
 });
 
+const housekeepingCleanSchema = new mongoose.Schema({
+  cleaningOption: { type: String, required: true },
+  username: { type: String, required: true },
+  roomNumber: { type: String, required: true },
+  timestamp: { type: Date, default: Date.now },
+  status: { 
+    type: String, 
+    enum: ['waiting', 'active', 'completed'], 
+    default: 'waiting' 
+  }
+});
+
+// Üçüncü parametre olarak koleksiyon adını belirtiyoruz.
+const HousekeepingClean = mongoose.model('HousekeepingClean', housekeepingCleanSchema, 'housekeepingclean');
+
+// POST endpoint: Yeni kayıt oluşturma
+app.post('/save-cleaning-option', async (req, res) => {
+  try {
+    // İstemciden gelen veriler; status gönderilmezse varsayılan 'waiting' olarak ayarlanır.
+    const { cleaningOption, username, roomNumber, timestamp, status } = req.body;
+
+    const newRecord = new HousekeepingClean({
+      cleaningOption,
+      username,
+      roomNumber,
+      timestamp: timestamp || new Date(),
+      status: status || 'waiting'
+    });
+
+    const savedRecord = await newRecord.save();
+    res.status(201).json(savedRecord);
+  } catch (error) {
+    console.error("Kayıt oluşturma hatası:", error);
+    res.status(500).json({ message: 'Temizlik kaydı oluşturulamadı', error });
+  }
+});
+
+// GET endpoint: Tüm kayıtları listeleme
+app.get('/cleaning-records', async (req, res) => {
+  try {
+    const records = await HousekeepingClean.find();
+    res.json(records);
+  } catch (error) {
+    console.error("Kayıt getirme hatası:", error);
+    res.status(500).json({ message: 'Kayıtlar getirilemedi', error });
+  }
+});
+
+// PATCH endpoint: Kayıt durumunu güncelleme (örneğin, waiting'den active veya completed'e)
+app.patch('/cleaning-records/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    if (!['waiting', 'active', 'completed'].includes(status)) {
+      return res.status(400).json({ message: 'Geçersiz durum değeri' });
+    }
+    
+    const updatedRecord = await HousekeepingClean.findByIdAndUpdate(id, { status }, { new: true });
+    if (!updatedRecord) {
+      return res.status(404).json({ message: 'Kayıt bulunamadı' });
+    }
+    res.json(updatedRecord);
+  } catch (error) {
+    console.error("Kayıt güncelleme hatası:", error);
+    res.status(500).json({ message: 'Kayıt güncellenemedi', error });
+  }
+});
+    // Sepet verilerini kaydeden endpoint
+    app.post('/save-cart', async (req, res) => {
+      try {
+        // Doğru collection adını kullanıyoruz, örneğin "cartOrders"
+        const cartCollection = database.collection("cartOrders");
+        const result = await cartCollection.insertOne(req.body);
+        res.status(201).json({ message: "Cart saved", result });
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error saving cart" });
+      }
+    });
 /* ======================
    Chat Model & Endpoints
    ====================== */
@@ -100,7 +180,7 @@ const transporter = nodemailer.createTransport({
         // Bu oda için ilk mesaj, e-posta gönderimi yapılıyor.
         const mailOptions = {
           from: '"Tech Admin" <nihatsaydam13131@gmail.com>',
-          to: 'destination@example.com', // Bildirimi almak istenen e-posta adresi
+          to: 'nihat.saydam@icloud.com', // Bildirimi almak istenen e-posta adresi
           subject: `Yeni sohbet başlangıcı - Oda: ${roomNumber}`,
           text: `Yeni bir sohbet başladı.
   Oda: ${roomNumber}
@@ -631,8 +711,8 @@ app.post('/saveComplain', async (req, res) => {
 
     // E-posta içeriği
     const mailOptions = {
-      from: '"Complain Notification" <your.email@gmail.com>',
-      to: 'recipient@example.com',
+      from: '"Complain Notification" <nihatsaydam13131@gmail.com>',
+      to: 'nihat.saydam@icloud.com',
       subject: `Yeni Şikayet - Oda ${roomNumber}`,
       text: `Yeni şikayet geldi:
       
@@ -746,18 +826,13 @@ app.post('/saveRoomservice', async (req, res) => {
       from: '"Room Service Uygulaması" <nihatsaydam13131@gmail.com>',
       to: 'nihat.saydam@icloud.com', // Bildirimi almak istediğiniz e-posta adresi
       subject: 'Yeni Room Service Siparişi Geldi',
-      text: `Merhaba,
-
-      Yeni bir Room Service siparişi alındı. Sipariş detayları aşağıdaki gibidir:
-      
+      text: `Yeni bir room service siparişi geldi.
 Oda: ${roomNumber}
 Siparişi veren: ${username || 'Bilinmiyor'}
 Ürünler: ${itemsString}
 Toplam Fiyat: ${totalPrice}₺
 Hizmet Süresi: ${serviceTimeLabel} (${serviceTime})
-Detaylar için yönetim panelini kontrol edebilirsiniz.
-Teşekkürler,
-Keepsty Ekibi`
+Detaylar için yönetim panelini kontrol edebilirsiniz.`
     };
 
     transporter.sendMail(mailOptions, (error, info) => {
@@ -887,37 +962,84 @@ app.put('/updateAskStatus/:id/:newStatus', async (req, res) => {
   }
 });
 
-const housekeepingSchema = new mongoose.Schema({
-  cleaningType: { type: String, required: true },
-  scheduledTime: { type: Date, required: true },
-  requestDetails: { type: String, required: false, default: "No additional details" },
-  status: { type: String, enum: ['waiting', 'active', 'complete'], default: 'waiting' },
-  createdAt: { type: Date, default: Date.now }
+// Sepet (Cart) için bir Mongoose şeması tanımlıyoruz
+
+
+
+
+
+
+// Cart (Sepet) modeli şeması
+const cartSchema = new mongoose.Schema({
+    items: [{
+        productName: String,
+        quantity: Number,
+        price: Number
+    }],                         // Sepetteki ürünler listesi (ürün adı, adet, fiyat vb.)
+    totalPrice: { type: Number, default: 0 },      // Sepetin toplam tutarı
+    createdAt: { type: Date, default: Date.now }   // Oluşturulma tarihi
+});
+const Cart = mongoose.model('Cart', cartSchema);
+
+// HousekeepingRequest (Oda hizmeti talebi) modeli şeması
+const housekeepingRequestSchema = new mongoose.Schema({
+    roomNumber: { type: Number, required: true },    // Oda numarası
+    requestType: { type: String, required: true },   // Talep türü (ör. "Temizlik", "Havlu", vb.)
+    description: { type: String },                   // Talep ile ilgili açıklama
+    status: { type: String, default: 'pending' },    // Durum ("pending", "completed" gibi)
+    requestedAt: { type: Date, default: Date.now }   // Talep oluşturulma zamanı
+});
+const HousekeepingRequest = mongoose.model('HousekeepingRequest', housekeepingRequestSchema);
+
+
+
+
+// Tüm sepetleri getir (GET /carts)
+app.get('/carts', async (req, res) => {
+    try {
+        const carts = await Cart.find();
+        res.json(carts);
+    } catch (error) {
+        console.error('Error fetching carts:', error);
+        res.status(500).json({ error: 'Sepetler alınamadı' });
+    }
 });
 
-const HousekeepingRequest = mongoose.model('HousekeepingRequest', housekeepingSchema);
+// Yeni bir sepet oluştur (POST /carts)
+app.post('/carts', async (req, res) => {
+    try {
+        const cartData = req.body;              // İstek gövdesindeki sepet verisi
+        const newCart = new Cart(cartData);
+        const savedCart = await newCart.save(); // Veritabanına kaydet
+        res.status(201).json(savedCart);
+    } catch (error) {
+        console.error('Error creating cart:', error);
+        res.status(500).json({ error: 'Yeni sepet oluşturulamadı' });
+    }
+});
 
-// API endpoint: Temizlik isteğini kaydet
-app.post('/housekeeping-request', async (req, res) => {
-  try {
-    const { cleaningType, scheduledTime, requestDetails } = req.body;
-    
-    // Yeni istek nesnesi oluşturuluyor (başlangıç durumu "waiting")
-    const newRequest = new HousekeepingRequest({
-      cleaningType,
-      scheduledTime,
-      requestDetails,
-      status: 'waiting'
-    });
-    
-    // Veritabanına kaydet
-    await newRequest.save();
-    
-    res.status(201).json({ message: 'Temizlik isteği başarıyla kaydedildi', data: newRequest });
-  } catch (error) {
-    console.error('Kayıt hatası:', error);
-    res.status(500).json({ message: 'Temizlik isteği kaydedilemedi', error: error.message });
-  }
+// Tüm housekeeping taleplerini getir (GET /housekeeping-requests)
+app.get('/housekeeping-requests', async (req, res) => {
+    try {
+        const requests = await HousekeepingRequest.find();
+        res.json(requests);
+    } catch (error) {
+        console.error('Error fetching housekeeping requests:', error);
+        res.status(500).json({ error: 'Housekeeping istekleri alınamadı' });
+    }
+});
+
+// Yeni bir housekeeping talebi oluştur (POST /housekeeping-requests)
+app.post('/housekeeping-requests', async (req, res) => {
+    try {
+        const requestData = req.body;                // İstek gövdesindeki talep verisi
+        const newRequest = new HousekeepingRequest(requestData);
+        const savedRequest = await newRequest.save(); // Veritabanına kaydet
+        res.status(201).json(savedRequest);
+    } catch (error) {
+        console.error('Error creating housekeeping request:', error);
+        res.status(500).json({ error: 'Housekeeping isteği oluşturulamadı' });
+    }
 });
 // Ana sayfa endpoint'i (Opsiyonel)
 app.get('/', (req, res) => {
