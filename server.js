@@ -1,5 +1,3 @@
-// server.js
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -817,9 +815,6 @@ app.post('/saveRoomservice', async (req, res) => {
     
     const newRoomService = new RoomService({ roomNumber, username, items, totalPrice, serviceTime, serviceTimeLabel });
     await newRoomService.save();
-
-    // items dizisindeki ürün bilgilerini string'e çeviriyoruz.
-    const itemsString = items.map(item => `${item.name} (Fiyat: ${item.price}, Miktar: ${item.quantity})`).join(', ');
 
     // E-posta gönderimi için mailOptions tanımlıyoruz.
     const mailOptions = {
