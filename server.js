@@ -1043,7 +1043,6 @@ app.post('/housekeeping-requests', async (req, res) => {
 app.get('/', (req, res) => {
   res.send('Welcome to Keepsty Backend API!');
 });
-
 // Sunucuyu başlat
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
