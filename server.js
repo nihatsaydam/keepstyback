@@ -43,13 +43,12 @@ const housekeepingCleanSchema = new mongoose.Schema({
   }
 });
 
-// Üçüncü parametre olarak koleksiyon adını belirtiyoruz.
+// Üçüncü parametre olarak koleksiyon adını belirtiyoruz: "housekeepingclean"
 const HousekeepingClean = mongoose.model('HousekeepingClean', housekeepingCleanSchema, 'housekeepingclean');
 
-// POST endpoint: Yeni kayıt oluşturma
+// POST endpoint: Yeni temizlik kaydı oluşturma
 app.post('/save-cleaning-option', async (req, res) => {
   try {
-    // İstemciden gelen veriler; status gönderilmezse varsayılan 'waiting' olarak ayarlanır.
     const { cleaningOption, username, roomNumber, timestamp, status } = req.body;
 
     const newRecord = new HousekeepingClean({
@@ -68,7 +67,7 @@ app.post('/save-cleaning-option', async (req, res) => {
   }
 });
 
-// GET endpoint: Tüm kayıtları listeleme
+// GET endpoint: Tüm temizlik kayıtlarını listeleme
 app.get('/cleaning-records', async (req, res) => {
   try {
     const records = await HousekeepingClean.find();
@@ -79,7 +78,7 @@ app.get('/cleaning-records', async (req, res) => {
   }
 });
 
-// PATCH endpoint: Kayıt durumunu güncelleme (örneğin, waiting'den active veya completed'e)
+// PATCH endpoint: Temizlik kaydı durumunu güncelleme (waiting, active, completed)
 app.patch('/cleaning-records/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -99,18 +98,36 @@ app.patch('/cleaning-records/:id', async (req, res) => {
     res.status(500).json({ message: 'Kayıt güncellenemedi', error });
   }
 });
-    // Sepet verilerini kaydeden endpoint
-    app.post('/save-cart', async (req, res) => {
-      try {
-        // Doğru collection adını kullanıyoruz, örneğin "cartOrders"
-        const cartCollection = database.collection("cartOrders");
-        const result = await cartCollection.insertOne(req.body);
-        res.status(201).json({ message: "Cart saved", result });
-      } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Error saving cart" });
-      }
-    });
+
+// ============================
+// Sepet Verileri için Schema & Model
+// ============================
+const cartOrderSchema = new mongoose.Schema({
+  username: { type: String, required: true },
+  roomNumber: { type: String, required: true },
+  cartItems: { type: Array, required: true },
+  timestamp: { type: Date, default: Date.now }
+});
+
+// "cartOrders" koleksiyonunu kullanıyoruz
+const CartOrder = mongoose.model('CartOrder', cartOrderSchema, 'cartOrders');
+
+// POST endpoint: Sepet verilerini kaydetme
+app.post('/save-cart', async (req, res) => {
+  try {
+    const { username, roomNumber, cartItems } = req.body;
+    if (!username || !roomNumber || !cartItems) {
+      return res.status(400).json({ message: 'Eksik alanlar var.' });
+    }
+    const newCartOrder = new CartOrder({ username, roomNumber, cartItems });
+    const savedOrder = await newCartOrder.save();
+    res.status(201).json({ message: "Cart saved", result: savedOrder });
+  } catch (error) {
+    console.error("Error saving cart:", error);
+    res.status(500).json({ message: "Error saving cart", error });
+  }
+});
+
 /* ======================
    Chat Model & Endpoints
    ====================== */
@@ -780,6 +797,8 @@ app.put('/updateStatusToCompleted/:id', async (req, res) => {
   }
 });
 
+// RoomService şeması
+// RoomService şeması
 const roomServiceSchema = new mongoose.Schema({
   roomNumber: { type: String, required: true },
   username: { type: String, required: true, default: "Unknown" },
@@ -815,9 +834,6 @@ app.post('/saveRoomservice', async (req, res) => {
     
     const newRoomService = new RoomService({ roomNumber, username, items, totalPrice, serviceTime, serviceTimeLabel });
     await newRoomService.save();
-
-    // items dizisindeki ürün bilgilerini string'e çeviriyoruz.
-    const itemsString = items.map(item => `${item.name} (Fiyat: ${item.price}, Miktar: ${item.quantity})`).join(', ');
 
     // E-posta gönderimi için mailOptions tanımlıyoruz.
     const mailOptions = {
@@ -1039,6 +1055,7 @@ app.post('/housekeeping-requests', async (req, res) => {
         res.status(500).json({ error: 'Housekeeping isteği oluşturulamadı' });
     }
 });
+
 // Ana sayfa endpoint'i (Opsiyonel)
 app.get('/', (req, res) => {
   res.send('Welcome to Keepsty Backend API!');
