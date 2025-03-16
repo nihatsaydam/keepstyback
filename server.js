@@ -125,29 +125,37 @@ const cartOrderSchema = new mongoose.Schema({
   username: { type: String, required: true },
   roomNumber: { type: String, required: true },
   cartItems: { type: Array, required: true },
+  status: { 
+    type: String, 
+    enum: ['waiting', 'active', 'completed'], 
+    default: 'waiting' 
+  },
   timestamp: { type: Date, default: Date.now }
 });
 const CartOrder = mongoose.model('CartOrder', cartOrderSchema, 'cartOrders');
 
-// POST endpoint: Sepet verilerini kaydetme ve e-posta gönderimi
+
 app.post('/save-cart', async (req, res) => {
   try {
     const { username, roomNumber, cartItems } = req.body;
     if (!username || !roomNumber || !cartItems) {
       return res.status(400).json({ message: 'Eksik alanlar var.' });
     }
+    // Yeni sipariş oluşturulurken status belirtilmediğinde otomatik olarak "waiting" olacaktır.
     const newCartOrder = new CartOrder({ username, roomNumber, cartItems });
     const savedOrder = await newCartOrder.save();
 
     // Sepet ürünlerini string haline getir
-    const itemsString = cartItems.map(item => `${item.name} (Miktar: ${item.quantity}, Fiyat: ${item.price})`).join(', ');
+    const itemsString = cartItems
+      .map(item => `${item.name} (Miktar: ${item.quantity}, Fiyat: ${item.price})`)
+      .join(', ');
 
     // E-posta içeriğini oluşturma
     const mailOptions = {
       from: '"Cart Orders Uygulaması" <nihatsaydam13131@gmail.com>',
-      to: 'info@hotel54.com',  // Bildirimi almak istediğiniz e-posta adresi
-      subject: 'Yeni Housekeeping bildirimi geldi',
-      text: `Yeni bir Housekeeping bildirimi var.
+      to: 'nihat.saydam@icloud.com',  // Bildirimi almak istediğiniz e-posta adresi
+      subject: 'Yeni Sepet Siparişi Geldi',
+      text: `Yeni bir sepet siparişi alındı.
 Oda: ${roomNumber}
 Kullanıcı: ${username}
 Ürünler: ${itemsString}
@@ -168,23 +176,51 @@ Tarih: ${new Date().toLocaleString()}`
     res.status(500).json({ message: "Error saving cart", error });
   }
 });
+app.put('/update-cart-status/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await CartOrder.findById(id);
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
+    }
 
-// GET endpoint: Tüm sepet siparişlerini listeleme (opsiyonel oda numarası filtresi)
+    // Mevcut duruma göre sıradaki durumu belirleyelim
+    let nextStatus;
+    if (order.status === 'waiting') {
+      nextStatus = 'active';
+    } else if (order.status === 'active') {
+      nextStatus = 'completed';
+    } else if (order.status === 'completed') {
+      return res.status(400).json({ message: "Order is already completed" });
+    }
+
+    order.status = nextStatus;
+    const updatedOrder = await order.save();
+    res.json({ message: "Status updated", order: updatedOrder });
+  } catch (error) {
+    console.error("Error updating cart status:", error);
+    res.status(500).json({ message: "Error updating cart status", error });
+  }
+});
+
 app.get('/cart-orders', async (req, res) => {
   try {
-    const { roomNumber } = req.query;
-    let orders;
+    const { roomNumber, status } = req.query;
+    let query = {};
     if (roomNumber) {
-      orders = await CartOrder.find({ roomNumber });
-    } else {
-      orders = await CartOrder.find();
+      query.roomNumber = roomNumber;
     }
+    if (status) {
+      query.status = status;
+    }
+    const orders = await CartOrder.find(query);
     res.json({ success: true, cartOrders: orders });
   } catch (error) {
     console.error("Cart orders getirme hatası:", error);
     res.status(500).json({ message: "Cart orders getirilemedi", error });
   }
 });
+
 /* ======================
    Chat Model & Endpoints
    ====================== */
