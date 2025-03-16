@@ -1055,7 +1055,6 @@ app.post('/housekeeping-requests', async (req, res) => {
         res.status(500).json({ error: 'Housekeeping isteği oluşturulamadı' });
     }
 });
-
 // Ana sayfa endpoint'i (Opsiyonel)
 app.get('/', (req, res) => {
   res.send('Welcome to Keepsty Backend API!');
