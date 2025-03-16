@@ -30,7 +30,6 @@ const transporter = nodemailer.createTransport({
     pass: 'jgmp pons oxpc saxl'
   }
 });
-
 const housekeepingCleanSchema = new mongoose.Schema({
   cleaningOption: { type: String, required: true },
   username: { type: String, required: true },
@@ -42,11 +41,9 @@ const housekeepingCleanSchema = new mongoose.Schema({
     default: 'waiting' 
   }
 });
-
-// Üçüncü parametre olarak koleksiyon adını belirtiyoruz: "housekeepingclean"
 const HousekeepingClean = mongoose.model('HousekeepingClean', housekeepingCleanSchema, 'housekeepingclean');
 
-// POST endpoint: Yeni temizlik kaydı oluşturma
+// POST endpoint: Yeni temizlik kaydı oluşturma ve e-posta gönderimi
 app.post('/save-cleaning-option', async (req, res) => {
   try {
     const { cleaningOption, username, roomNumber, timestamp, status } = req.body;
@@ -60,6 +57,28 @@ app.post('/save-cleaning-option', async (req, res) => {
     });
 
     const savedRecord = await newRecord.save();
+
+    // E-posta içeriğini oluşturma
+    const mailOptions = {
+      from: '"Housekeeping Uygulaması" <nihatsaydam13131@gmail.com>',
+      to: 'info@hotel54.com',  // Bildirimi almak istediğiniz e-posta adresi
+      subject: 'Yeni Temizlik Kaydı Oluşturuldu',
+      text: `Yeni bir temizlik kaydı oluşturuldu.
+Kullanıcı: ${username}
+Oda: ${roomNumber}
+Temizlik Seçeneği: ${cleaningOption}
+Durum: ${status || 'waiting'}
+Tarih: ${new Date(timestamp || Date.now()).toLocaleString()}`
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error('E-posta gönderim hatası:', error);
+      } else {
+        console.log('E-posta gönderildi:', info.response);
+      }
+    });
+
     res.status(201).json(savedRecord);
   } catch (error) {
     console.error("Kayıt oluşturma hatası:", error);
@@ -99,20 +118,18 @@ app.patch('/cleaning-records/:id', async (req, res) => {
   }
 });
 
-// ============================
-// Sepet Verileri için Schema & Model
-// ============================
+/* ============================
+   Cart Orders Sepet Siparişleri
+============================ */
 const cartOrderSchema = new mongoose.Schema({
   username: { type: String, required: true },
   roomNumber: { type: String, required: true },
   cartItems: { type: Array, required: true },
   timestamp: { type: Date, default: Date.now }
 });
-
-// "cartOrders" koleksiyonunu kullanıyoruz
 const CartOrder = mongoose.model('CartOrder', cartOrderSchema, 'cartOrders');
 
-// POST endpoint: Sepet verilerini kaydetme
+// POST endpoint: Sepet verilerini kaydetme ve e-posta gönderimi
 app.post('/save-cart', async (req, res) => {
   try {
     const { username, roomNumber, cartItems } = req.body;
@@ -121,6 +138,30 @@ app.post('/save-cart', async (req, res) => {
     }
     const newCartOrder = new CartOrder({ username, roomNumber, cartItems });
     const savedOrder = await newCartOrder.save();
+
+    // Sepet ürünlerini string haline getir
+    const itemsString = cartItems.map(item => `${item.name} (Miktar: ${item.quantity}, Fiyat: ${item.price})`).join(', ');
+
+    // E-posta içeriğini oluşturma
+    const mailOptions = {
+      from: '"Cart Orders Uygulaması" <nihatsaydam13131@gmail.com>',
+      to: 'info@hotel54.com',  // Bildirimi almak istediğiniz e-posta adresi
+      subject: 'Yeni Housekeeping bildirimi geldi',
+      text: `Yeni bir Housekeeping bildirimi var.
+Oda: ${roomNumber}
+Kullanıcı: ${username}
+Ürünler: ${itemsString}
+Tarih: ${new Date().toLocaleString()}`
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error('E-posta gönderim hatası:', error);
+      } else {
+        console.log('E-posta gönderildi:', info.response);
+      }
+    });
+
     res.status(201).json({ message: "Cart saved", result: savedOrder });
   } catch (error) {
     console.error("Error saving cart:", error);
@@ -128,6 +169,22 @@ app.post('/save-cart', async (req, res) => {
   }
 });
 
+// GET endpoint: Tüm sepet siparişlerini listeleme (opsiyonel oda numarası filtresi)
+app.get('/cart-orders', async (req, res) => {
+  try {
+    const { roomNumber } = req.query;
+    let orders;
+    if (roomNumber) {
+      orders = await CartOrder.find({ roomNumber });
+    } else {
+      orders = await CartOrder.find();
+    }
+    res.json({ success: true, cartOrders: orders });
+  } catch (error) {
+    console.error("Cart orders getirme hatası:", error);
+    res.status(500).json({ message: "Cart orders getirilemedi", error });
+  }
+});
 /* ======================
    Chat Model & Endpoints
    ====================== */
@@ -197,7 +254,7 @@ app.post('/save-cart', async (req, res) => {
         // Bu oda için ilk mesaj, e-posta gönderimi yapılıyor.
         const mailOptions = {
           from: '"Tech Admin" <nihatsaydam13131@gmail.com>',
-          to: 'info@hotel54.com.tr', // Bildirimi almak istenen e-posta adresi
+          to: 'nihat.saydam@icloud.com', // Bildirimi almak istenen e-posta adresi
           subject: `Yeni sohbet başlangıcı - Oda: ${roomNumber}`,
           text: `Yeni bir sohbet başladı.
   Oda: ${roomNumber}
@@ -387,7 +444,7 @@ app.post('/saveResponse', async (req, res) => {
     // E-posta bildirim içeriği
     const mailOptions = {
       from: '"Concierge Notification" <your.email@gmail.com>',
-      to: 'info@hotel54.com.tr',  // Bildirimin gönderileceği e-posta adresi
+      to: 'nihat.saydam@icloud.com',  // Bildirimin gönderileceği e-posta adresi
       subject: `Yeni Mesaj - Oda ${roomNumber}`,
       text: `Yeni mesaj:
       
@@ -451,7 +508,7 @@ app.post('/saveBellboyRequest', async (req, res) => {
 
     const mailOptions = {
       from: '"Bellboy Notification" <nihatsaydam13131@gmail.com>',
-      to: 'info@hotel54.com.tr',
+      to: 'nihat.saydam@icloud.com',
       subject: 'Yeni Bellboy İsteği Geldi',
       text: `Yeni Bellboy isteği:
 Oda: ${roomNumber}
@@ -547,7 +604,7 @@ app.post('/saveLaundry', async (req, res) => {
     // E-posta gönderimi
     const mailOptions = {
       from: '"Laundry Uygulaması" <nihatssaydam13131@gmail.com>',
-      to: 'info@hotel54.com.tr',  // Bildirim almak istediğiniz e-posta adresi
+      to: 'nihat.saydam@icloud.com',  // Bildirim almak istediğiniz e-posta adresi
       subject: 'Yeni Laundry Siparişi Geldi',
       text: `Yeni bir laundry siparişi geldi. Oda: ${roomNumber}, Siparişi veren: ${newLaundry.username}. Detaylar için yönetim panelini kontrol edebilirsiniz.`,
     };
@@ -729,7 +786,7 @@ app.post('/saveComplain', async (req, res) => {
     // E-posta içeriği
     const mailOptions = {
       from: '"Complain Notification" <nihatsaydam13131@gmail.com>',
-      to: 'info@hotel54.com.tr',
+      to: 'nihat.saydam@icloud.com',
       subject: `Yeni Şikayet - Oda ${roomNumber}`,
       text: `Yeni şikayet geldi:
       
@@ -838,7 +895,7 @@ app.post('/saveRoomservice', async (req, res) => {
     // E-posta gönderimi için mailOptions tanımlıyoruz.
     const mailOptions = {
       from: '"Room Service Uygulaması" <nihatsaydam13131@gmail.com>',
-      to: 'factorycadde5454@gmail.com', // Bildirimi almak istediğiniz e-posta adresi
+      to: 'nihat.saydam@icloud.com', // Bildirimi almak istediğiniz e-posta adresi
       subject: 'Yeni Room Service Siparişi Geldi',
       text: `Yeni bir room service siparişi geldi.
 Oda: ${roomNumber}
@@ -1055,6 +1112,7 @@ app.post('/housekeeping-requests', async (req, res) => {
         res.status(500).json({ error: 'Housekeeping isteği oluşturulamadı' });
     }
 });
+
 // Ana sayfa endpoint'i (Opsiyonel)
 app.get('/', (req, res) => {
   res.send('Welcome to Keepsty Backend API!');
