@@ -927,6 +927,7 @@ app.post('/saveRoomservice', async (req, res) => {
     
     const newRoomService = new RoomService({ roomNumber, username, items, totalPrice, serviceTime, serviceTimeLabel });
     await newRoomService.save();
+    const itemsString = items.map(item => `${item.name} (Miktar: ${item.quantity}, Fiyat: ${item.price})`).join(', ');
 
     // E-posta gönderimi için mailOptions tanımlıyoruz.
     const mailOptions = {
