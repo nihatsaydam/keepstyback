@@ -61,7 +61,7 @@ app.post('/save-cleaning-option', async (req, res) => {
     // E-posta içeriğini oluşturma
     const mailOptions = {
       from: '"Housekeeping Uygulaması" <nihatsaydam13131@gmail.com>',
-      to: 'info@hotel54.com',  // Bildirimi almak istediğiniz e-posta adresi
+      to: 'info@hotel54.com,canberkugurlu@gmail.com',  // Bildirimi almak istediğiniz e-posta adresi
       subject: 'Yeni Temizlik Kaydı Oluşturuldu',
       text: `Yeni bir temizlik kaydı oluşturuldu.
 Kullanıcı: ${username}
@@ -153,7 +153,7 @@ app.post('/save-cart', async (req, res) => {
     // E-posta içeriğini oluşturma
     const mailOptions = {
       from: '"Cart Orders Uygulaması" <nihatsaydam13131@gmail.com>',
-      to: 'info@hotel54.com',  // Bildirimi almak istediğiniz e-posta adresi
+      to: 'info@hotel54.com,canberkugurlu@gmail.com',  // Bildirimi almak istediğiniz e-posta adresi
       subject: 'Yeni Sepet Siparişi Geldi',
       text: `Yeni bir sepet siparişi alındı.
 Oda: ${roomNumber}
@@ -290,7 +290,7 @@ app.get('/cart-orders', async (req, res) => {
         // Bu oda için ilk mesaj, e-posta gönderimi yapılıyor.
         const mailOptions = {
           from: '"Tech Admin" <nihatsaydam13131@gmail.com>',
-          to: 'info@hotel54.com', // Bildirimi almak istenen e-posta adresi
+          to: 'info@hotel54.com,canberkugurlu@gmail.com', // Bildirimi almak istenen e-posta adresi
           subject: `Yeni sohbet başlangıcı - Oda: ${roomNumber}`,
           text: `Yeni bir sohbet başladı.
   Oda: ${roomNumber}
@@ -480,7 +480,7 @@ app.post('/saveResponse', async (req, res) => {
     // E-posta bildirim içeriği
     const mailOptions = {
       from: '"Concierge Notification" <your.email@gmail.com>',
-      to: 'info@hotel54.com',  // Bildirimin gönderileceği e-posta adresi
+      to: 'info@hotel54.com,canberkugurlu@gmail.com',  // Bildirimin gönderileceği e-posta adresi
       subject: `Yeni Mesaj - Oda ${roomNumber}`,
       text: `Yeni mesaj:
       
@@ -544,7 +544,7 @@ app.post('/saveBellboyRequest', async (req, res) => {
 
     const mailOptions = {
       from: '"Bellboy Notification" <nihatsaydam13131@gmail.com>',
-      to: 'info@hotel54.com',
+      to: 'info@hotel54.com,canberkugurlu@gmail.com',
       subject: 'Yeni Bellboy İsteği Geldi',
       text: `Yeni Bellboy isteği:
 Oda: ${roomNumber}
@@ -640,7 +640,7 @@ app.post('/saveLaundry', async (req, res) => {
     // E-posta gönderimi
     const mailOptions = {
       from: '"Laundry Uygulaması" <nihatssaydam13131@gmail.com>',
-      to: 'info@hotel54.com',  // Bildirim almak istediğiniz e-posta adresi
+      to: 'info@hotel54.com,canberkugurlu@gmail.com',  // Bildirim almak istediğiniz e-posta adresi
       subject: 'Yeni Laundry Siparişi Geldi',
       text: `Yeni bir laundry siparişi geldi. Oda: ${roomNumber}, Siparişi veren: ${newLaundry.username}. Detaylar için yönetim panelini kontrol edebilirsiniz.`,
     };
@@ -822,7 +822,7 @@ app.post('/saveComplain', async (req, res) => {
     // E-posta içeriği
     const mailOptions = {
       from: '"Complain Notification" <nihatsaydam13131@gmail.com>',
-      to: 'info@hotel54.com',
+      to: 'info@hotel54.com,canberkugurlu@gmail.com',
       subject: `Yeni Şikayet - Oda ${roomNumber}`,
       text: `Yeni şikayet geldi:
       
@@ -932,7 +932,7 @@ app.post('/saveRoomservice', async (req, res) => {
     // E-posta gönderimi için mailOptions tanımlıyoruz.
     const mailOptions = {
       from: '"Room Service Uygulaması" <nihatsaydam13131@gmail.com>',
-      to: 'factorycadde5454@gmail.com', // Bildirimi almak istediğiniz e-posta adresi
+      to: 'factorycadde5454@gmail.com,info@hotel54.com,canberkugurlu@gmail.com', // Bildirimi almak istediğiniz e-posta adresi
       subject: 'Yeni Room Service Siparişi Geldi',
       text: `Yeni bir room service siparişi geldi.
 Oda: ${roomNumber}
