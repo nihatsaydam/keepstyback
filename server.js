@@ -932,7 +932,8 @@ app.post('/saveRoomservice', async (req, res) => {
     // E-posta gönderimi için mailOptions tanımlıyoruz.
     const mailOptions = {
       from: '"Room Service Uygulaması" <nihatsaydam13131@gmail.com>',
-      to: 'factorycadde5454@gmail.com,info@hotel54.com.tr,canberkugurlu@gmail.com', // Bildirimi almak istediğiniz e-posta adresi
+      to: ['factorycadde5454@gmail.com', 'info@hotel54.com.tr', 'canberkugurlu@gmail.com'],
+      // Bildirimi almak istediğiniz e-posta adresi
       subject: 'Yeni Room Service Siparişi Geldi',
       text: `Yeni bir room service siparişi geldi.
 Oda: ${roomNumber}
